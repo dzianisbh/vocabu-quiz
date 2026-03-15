@@ -195,10 +195,7 @@
 <h1>Transport</h1>
 <p class="subtitle">Match each English word with its Russian translation</p>
 
-<div class="timer-bar">
-  <span class="timer-icon">&#9201;</span>
-  <span id="timer-display">0:00</span>
-</div>
+
 
 <div class="game-area" id="game-area">
   <div class="column">
@@ -224,7 +221,8 @@
 <script>
 (function() {
   var PAIRS = [{"en":"Car","ru":"Автомобиль"},{"en":"Train","ru":"Поезд"},{"en":"Bus","ru":"Автобус"},{"en":"Bicycle","ru":"Велосипед"},{"en":"Plane","ru":"Самолет"},{"en":"Ship","ru":"Корабль"},{"en":"Metro","ru":"Метро"},{"en":"Taxi","ru":"Такси"},{"en":"Tram","ru":"Трамвай"},{"en":"Motorcycle","ru":"Мотоцикл"},{"en":"Truck","ru":"Грузовик"}];
-  var INITIAL_TIMER = 60;
+  var INITIAL_TIMER = 0;
+  var TIMER_ENABLED = INITIAL_TIMER > 0;
   var CORRECT_BONUS = 3;
   var WRONG_PENALTY = 5;
 
@@ -357,9 +355,13 @@
       removeClass(selectedRu, 'selected');
       addClass(selectedEn, 'matched');
       addClass(selectedRu, 'matched');
-      timerLeft = Math.min(timerLeft + CORRECT_BONUS, INITIAL_TIMER * 2);
-      updateTimerDisplay();
-      showNotification('+' + CORRECT_BONUS + 's  Correct! ✓', 'success');
+      if (TIMER_ENABLED) {
+        timerLeft = Math.min(timerLeft + CORRECT_BONUS, INITIAL_TIMER * 2);
+        updateTimerDisplay();
+        showNotification('+' + CORRECT_BONUS + 's  Correct! ✓', 'success');
+      } else {
+        showNotification('Correct! ✓', 'success');
+      }
       matchedCount++;
       selectedEn = null;
       selectedRu = null;
@@ -372,9 +374,13 @@
       var en = selectedEn, ru = selectedRu;
       addClass(en, 'shake');
       addClass(ru, 'shake');
-      timerLeft = Math.max(0, timerLeft - WRONG_PENALTY);
-      updateTimerDisplay();
-      showNotification('-' + WRONG_PENALTY + 's  Wrong match ✗', 'error');
+      if (TIMER_ENABLED) {
+        timerLeft = Math.max(0, timerLeft - WRONG_PENALTY);
+        updateTimerDisplay();
+        showNotification('-' + WRONG_PENALTY + 's  Wrong match ✗', 'error');
+      } else {
+        showNotification('Wrong match ✗', 'error');
+      }
 
       setTimeout(function() {
         removeClass(en, 'selected');
@@ -383,7 +389,7 @@
         removeClass(ru, 'shake');
         selectedEn = null;
         selectedRu = null;
-        if (timerLeft <= 0) endGame(false);
+        if (TIMER_ENABLED && timerLeft <= 0) endGame(false);
       }, 500);
     }
   }
@@ -402,7 +408,7 @@
       : 0;
 
     var emoji;
-    if (!won) {
+    if (!won && TIMER_ENABLED) {
       emoji = '⏰';
       document.getElementById('score-title').textContent = "Time's Up!";
     } else if (accuracy === 100) {
@@ -436,16 +442,20 @@
     gameArea.style.display = '-ms-grid';
     gameArea.style.display = 'grid';
 
-    updateTimerDisplay();
+    if (TIMER_ENABLED) {
+      updateTimerDisplay();
+      startTimer();
+    }
     buildBoard();
-    startTimer();
   }
 
   window.restartQuiz = restartQuiz;
 
   buildBoard();
-  updateTimerDisplay();
-  startTimer();
+  if (TIMER_ENABLED) {
+    updateTimerDisplay();
+    startTimer();
+  }
 })();
 </script>
 </body>
