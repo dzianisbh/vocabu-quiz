@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Food &mdash; Vocabulary Quiz</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --radius: 0.75rem;
+  }
+  body {
+    font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-align-items: center;
+    align-items: center;
+    padding: 1.5rem 1rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1 { font-size: 1.6rem; font-weight: 700; text-align: center; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--muted); font-size: 0.9rem; text-align: center; margin-bottom: 1.25rem; }
+
+  .timer-bar {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-align-items: center;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 0.625rem 1.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  }
+  .timer-icon { font-size: 1.3rem; }
+  #timer-display { min-width: 3.75rem; text-align: center; }
+  #timer-display.warning { color: var(--danger); -webkit-animation: pulse 1s infinite; animation: pulse 1s infinite; }
+  @-webkit-keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+  .game-area {
+    display: -webkit-flex;
+    display: -ms-grid;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+    max-width: 700px;
+  }
+  .column {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .column-cards {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .column-label {
+    font-size: 0.75rem; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted);
+    text-align: center; margin-bottom: 0.25rem;
+  }
+  .word-card {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.875rem 1.125rem;
+    cursor: pointer;
+    font-size: 1rem;
+    text-align: center;
+    -webkit-transition: border-color .15s, background .15s, -webkit-transform .15s, opacity .3s;
+    transition: border-color .15s, background .15s, transform .15s, opacity .3s;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    position: relative;
+    touch-action: manipulation;
+    -webkit-appearance: none;
+  }
+  .word-card.selected {
+    border-color: var(--primary);
+    background: #eef2ff;
+    font-weight: 600;
+  }
+  .word-card.matched {
+    border-color: var(--success);
+    background: #f0fdf4;
+    color: #15803d;
+    opacity: .55;
+    cursor: default;
+    pointer-events: none;
+  }
+  .word-card.shake {
+    -webkit-animation: shake .4s;
+    animation: shake .4s;
+    border-color: var(--danger);
+    background: #fef2f2;
+  }
+  @-webkit-keyframes shake {
+    0%,100%{-webkit-transform:translateX(0);transform:translateX(0)}
+    20%{-webkit-transform:translateX(-8px);transform:translateX(-8px)}
+    40%{-webkit-transform:translateX(8px);transform:translateX(8px)}
+    60%{-webkit-transform:translateX(-5px);transform:translateX(-5px)}
+    80%{-webkit-transform:translateX(5px);transform:translateX(5px)}
+  }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-8px)}
+    40%{transform:translateX(8px)}
+    60%{transform:translateX(-5px)}
+    80%{transform:translateX(5px)}
+  }
+
+  #notification {
+    position: fixed; top: 1.25rem; left: 50%;
+    -webkit-transform: translateX(-50%);
+    transform: translateX(-50%);
+    padding: 0.75rem 1.5rem; border-radius: 50px;
+    font-weight: 600; font-size: .95rem;
+    opacity: 0;
+    -webkit-transition: opacity .25s;
+    transition: opacity .25s;
+    pointer-events: none; z-index: 100;
+    box-shadow: 0 4px 16px rgba(0,0,0,.15);
+    white-space: nowrap;
+  }
+  #notification.show { opacity: 1; }
+  #notification.success { background: var(--success); color: #fff; }
+  #notification.error { background: var(--danger); color: #fff; }
+
+  #score-screen {
+    display: none;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-align-items: center;
+    align-items: center;
+    gap: 1.25rem;
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 3rem 2.5rem;
+    max-width: 26.25rem;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,.1);
+  }
+  .score-emoji { font-size: 4rem; }
+  .score-title { font-size: 1.8rem; font-weight: 700; }
+  .score-detail { color: var(--muted); font-size: 1rem; }
+  .score-value { font-size: 3rem; font-weight: 800; color: var(--primary); }
+  .btn-retry {
+    margin-top: 0.5rem;
+    background: var(--primary); color: #fff;
+    border: none; border-radius: 50px;
+    padding: 0.875rem 2.25rem; font-size: 1rem; font-weight: 600;
+    cursor: pointer;
+    -webkit-transition: background .15s;
+    transition: background .15s;
+    touch-action: manipulation;
+  }
+  .btn-retry:active { background: var(--primary-dark); }
+
+  @media (max-width: 480px) {
+    .game-area { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .column-cards { gap: 1rem; }
+    .word-card { padding: 0.75rem 0.5rem; font-size: .85rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Food</h1>
+<p class="subtitle">Match each English word with its Russian translation</p>
+
+<div class="timer-bar">
+  <span class="timer-icon">&#9201;</span>
+  <span id="timer-display">0:00</span>
+</div>
+
+<div class="game-area" id="game-area">
+  <div class="column">
+    <div class="column-label">English</div>
+    <div id="col-en" class="column-cards"></div>
+  </div>
+  <div class="column">
+    <div class="column-label">Russian</div>
+    <div id="col-ru" class="column-cards"></div>
+  </div>
+</div>
+
+<div id="score-screen">
+  <div class="score-emoji" id="score-emoji">&#127881;</div>
+  <div class="score-title" id="score-title">Quiz Complete!</div>
+  <div class="score-value" id="score-value"></div>
+  <div class="score-detail" id="score-detail"></div>
+  <button class="btn-retry" onclick="restartQuiz()">Play Again</button>
+</div>
+
+<div id="notification"></div>
+
+<script>
+(function() {
+  var PAIRS = [{"en":"Apple","ru":"Яблоко"},{"en":"Bread","ru":"Хлеб"},{"en":"Water","ru":"Вода"},{"en":"Milk","ru":"Молоко"},{"en":"Cheese","ru":"Сыр"},{"en":"Meat","ru":"Мясо"},{"en":"Fish","ru":"Рыба"},{"en":"Vegetable","ru":"Овощ"},{"en":"Fruit","ru":"Фрукт"},{"en":"Sugar","ru":"Сахар"}];
+  var INITIAL_TIMER = 60;
+  var CORRECT_BONUS = 3;
+  var WRONG_PENALTY = 5;
+
+  var timerLeft = INITIAL_TIMER;
+  var timerInterval = null;
+  var notifTimeout = null;
+  var selectedEn = null;
+  var selectedRu = null;
+  var matchedCount = 0;
+  var mistakes = 0;
+  var gameOver = false;
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  function formatTime(s) {
+    var abs = s < 0 ? -s : s;
+    var m = Math.floor(abs / 60);
+    var sec = abs % 60;
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  function updateTimerDisplay() {
+    var el = document.getElementById('timer-display');
+    el.textContent = formatTime(timerLeft);
+    if (timerLeft <= 10 && timerLeft > 0) {
+      el.className = 'warning';
+    } else {
+      el.className = '';
+    }
+  }
+
+  function startTimer() {
+    timerInterval = setInterval(function() {
+      timerLeft--;
+      updateTimerDisplay();
+      if (timerLeft <= 0) {
+        timerLeft = 0;
+        updateTimerDisplay();
+        endGame(false);
+      }
+    }, 1000);
+  }
+
+  function showNotification(msg, type) {
+    var el = document.getElementById('notification');
+    el.textContent = msg;
+    el.className = 'show ' + type;
+    clearTimeout(notifTimeout);
+    notifTimeout = setTimeout(function() { el.className = ''; }, 1800);
+  }
+
+  function buildBoard() {
+    var enOrder = shuffle(PAIRS.map(function(_, i) { return i; }));
+    var ruOrder = shuffle(PAIRS.map(function(_, i) { return i; }));
+
+    var colEn = document.getElementById('col-en');
+    var colRu = document.getElementById('col-ru');
+    colEn.innerHTML = '';
+    colRu.innerHTML = '';
+
+    enOrder.forEach(function(idx) {
+      var card = createCard(PAIRS[idx].en, idx, 'en');
+      colEn.appendChild(card);
+    });
+
+    ruOrder.forEach(function(idx) {
+      var card = createCard(PAIRS[idx].ru, idx, 'ru');
+      colRu.appendChild(card);
+    });
+  }
+
+  function createCard(text, idx, side) {
+    var card = document.createElement('div');
+    card.className = 'word-card';
+    card.textContent = text;
+    card.setAttribute('data-idx', idx);
+    card.setAttribute('data-side', side);
+    card.addEventListener('click', function() { selectCard(card); });
+    card.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      selectCard(card);
+    });
+    return card;
+  }
+
+  function selectCard(card) {
+    if (gameOver || card.className.indexOf('matched') !== -1) return;
+
+    var side = card.getAttribute('data-side');
+
+    if (side === 'en') {
+      if (selectedEn) {
+        selectedEn.className = selectedEn.className.replace(' selected', '').replace('selected', '');
+      }
+      selectedEn = card;
+      if (card.className.indexOf('selected') === -1) card.className += ' selected';
+    } else {
+      if (selectedRu) {
+        selectedRu.className = selectedRu.className.replace(' selected', '').replace('selected', '');
+      }
+      selectedRu = card;
+      if (card.className.indexOf('selected') === -1) card.className += ' selected';
+    }
+
+    if (selectedEn && selectedRu) {
+      checkMatch();
+    }
+  }
+
+  function removeClass(el, cls) {
+    el.className = (' ' + el.className + ' ').replace(' ' + cls + ' ', ' ').trim();
+  }
+  function addClass(el, cls) {
+    if (el.className.indexOf(cls) === -1) el.className = (el.className + ' ' + cls).trim();
+  }
+
+  function checkMatch() {
+    var enIdx = parseInt(selectedEn.getAttribute('data-idx'), 10);
+    var ruIdx = parseInt(selectedRu.getAttribute('data-idx'), 10);
+
+    if (enIdx === ruIdx) {
+      removeClass(selectedEn, 'selected');
+      removeClass(selectedRu, 'selected');
+      addClass(selectedEn, 'matched');
+      addClass(selectedRu, 'matched');
+      timerLeft = Math.min(timerLeft + CORRECT_BONUS, INITIAL_TIMER * 2);
+      updateTimerDisplay();
+      showNotification('+' + CORRECT_BONUS + 's  Correct! ✓', 'success');
+      matchedCount++;
+      selectedEn = null;
+      selectedRu = null;
+
+      if (matchedCount === PAIRS.length) {
+        setTimeout(function() { endGame(true); }, 400);
+      }
+    } else {
+      mistakes++;
+      var en = selectedEn, ru = selectedRu;
+      addClass(en, 'shake');
+      addClass(ru, 'shake');
+      timerLeft = Math.max(0, timerLeft - WRONG_PENALTY);
+      updateTimerDisplay();
+      showNotification('-' + WRONG_PENALTY + 's  Wrong match ✗', 'error');
+
+      setTimeout(function() {
+        removeClass(en, 'selected');
+        removeClass(en, 'shake');
+        removeClass(ru, 'selected');
+        removeClass(ru, 'shake');
+        selectedEn = null;
+        selectedRu = null;
+        if (timerLeft <= 0) endGame(false);
+      }, 500);
+    }
+  }
+
+  function endGame(won) {
+    gameOver = true;
+    clearInterval(timerInterval);
+
+    document.getElementById('game-area').style.display = 'none';
+    var scoreScreen = document.getElementById('score-screen');
+    scoreScreen.style.display = '-webkit-flex';
+    scoreScreen.style.display = 'flex';
+
+    var accuracy = (matchedCount + mistakes) > 0
+      ? Math.round((matchedCount / (matchedCount + mistakes)) * 100)
+      : 0;
+
+    var emoji;
+    if (!won) {
+      emoji = '⏰';
+      document.getElementById('score-title').textContent = "Time's Up!";
+    } else if (accuracy === 100) {
+      emoji = '🏆';
+    } else if (accuracy >= 75) {
+      emoji = '🎉';
+    } else if (accuracy >= 50) {
+      emoji = '👍';
+    } else {
+      emoji = '📚';
+    }
+    document.getElementById('score-emoji').textContent = emoji;
+    document.getElementById('score-value').textContent = accuracy + '%';
+    var mistakeWord = mistakes === 1 ? 'mistake' : 'mistakes';
+    document.getElementById('score-detail').textContent =
+      matchedCount + ' of ' + PAIRS.length + ' matched · ' + mistakes + ' ' + mistakeWord;
+  }
+
+  function restartQuiz() {
+    gameOver = false;
+    selectedEn = null;
+    selectedRu = null;
+    matchedCount = 0;
+    mistakes = 0;
+    timerLeft = INITIAL_TIMER;
+    clearInterval(timerInterval);
+    clearTimeout(notifTimeout);
+
+    document.getElementById('score-screen').style.display = 'none';
+    var gameArea = document.getElementById('game-area');
+    gameArea.style.display = '-ms-grid';
+    gameArea.style.display = 'grid';
+
+    updateTimerDisplay();
+    buildBoard();
+    startTimer();
+  }
+
+  window.restartQuiz = restartQuiz;
+
+  buildBoard();
+  updateTimerDisplay();
+  startTimer();
+})();
+</script>
+</body>
+</html>
