@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Test &mdash; Fill in the Blanks</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #6366f1;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --radius: 0.75rem;
+  }
+  body {
+    font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+  .tasks { display: flex; flex-direction: column; gap: 1rem; }
+  .task {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  }
+  .task-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+  .sentence {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem 0.4rem;
+    font-size: 1.05rem;
+    line-height: 2.2;
+  }
+  .word { white-space: pre-wrap; }
+  .blank-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef2ff;
+    border: 2px dashed var(--primary);
+    border-radius: 6px;
+    padding: 0.15rem 0.875rem;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--primary);
+    font-weight: 600;
+    min-width: 5rem;
+    -webkit-transition: background .15s;
+    transition: background .15s;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .blank-btn:hover:not(.answered) { background: #e0e7ff; }
+  .blank-btn.answered {
+    background: #f0fdf4;
+    border-color: var(--success);
+    border-style: solid;
+    color: #15803d;
+    cursor: default;
+  }
+  .options-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.875rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--border);
+  }
+  .options-area.hidden { display: none; }
+  .opt-btn {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 0.375rem 1rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-family: inherit;
+    -webkit-transition: border-color .15s, background .15s;
+    transition: border-color .15s, background .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .opt-btn:hover:not(:disabled) { border-color: var(--primary); background: #eef2ff; }
+  .opt-btn.correct { border-color: var(--success); background: #f0fdf4; color: #15803d; }
+  .opt-btn.wrong { border-color: var(--danger); background: #fef2f2; -webkit-animation: shake .4s; animation: shake .4s; }
+  .opt-btn:disabled { opacity: 0.6; cursor: default; }
+  @-webkit-keyframes shake {
+    0%,100%{-webkit-transform:translateX(0);transform:translateX(0)}
+    25%{-webkit-transform:translateX(-5px);transform:translateX(-5px)}
+    75%{-webkit-transform:translateX(5px);transform:translateX(5px)}
+  }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    25%{transform:translateX(-5px)}
+    75%{transform:translateX(5px)}
+  }
+  @media (max-width: 480px) {
+    body { padding: 1.25rem 0.75rem; }
+    h1 { font-size: 1.35rem; }
+    .sentence { font-size: 0.95rem; }
+    .blank-btn { font-size: 0.9rem; min-width: 4rem; padding: 0.15rem 0.625rem; }
+    .opt-btn { font-size: 0.875rem; padding: 0.3rem 0.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Test</h1>
+<p class="subtitle">Fill in the blanks</p>
+<div id="tasks" class="tasks"></div>
+
+<script>
+(function() {
+  var ROWS = [{"id":"cf47e1bf-1cc0-47d3-ab78-5966f5ea957a","items":[{"id":"29683c6b-9a28-4720-bcf6-8563567aa308","type":"text","content":"tratata","options":null},{"id":"a7933bdd-9d19-4b46-b45a-a27c7d765338","type":"question","content":null,"options":["bla","wrong","wrong","wrong"]},{"id":"2240fb7a-5a49-4bf0-8ac7-46a55adca5c8","type":"text","content":"trololo","options":null},{"id":"8e9dddec-0017-4cf2-8068-2fc69bf5b8be","type":"question","content":null,"options":["hohoho","bla","bla","bla"]},{"id":"68f30bd8-17a0-41e3-8296-4534074ab6b3","type":"text","content":"boom","options":null}]}];
+
+  function shuffle(a) {
+    var b = a.slice();
+    for (var i = b.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = b[i]; b[i] = b[j]; b[j] = t;
+    }
+    return b;
+  }
+
+  function buildTask(row, rowIdx) {
+    var task = document.createElement('div');
+    task.className = 'task';
+
+    var label = document.createElement('div');
+    label.className = 'task-label';
+    label.textContent = 'Task ' + (rowIdx + 1);
+    task.appendChild(label);
+
+    var sentence = document.createElement('div');
+    sentence.className = 'sentence';
+    task.appendChild(sentence);
+
+    var qCount = 0;
+    row.items.forEach(function(item) { if (item.type === 'question') qCount++; });
+    var isSingle = qCount === 1;
+
+    row.items.forEach(function(item) {
+      if (item.type === 'text') {
+        var span = document.createElement('span');
+        span.className = 'word';
+        span.textContent = item.content;
+        sentence.appendChild(span);
+      } else {
+        var correctAns = item.options[0];
+        var shuffled = shuffle(item.options);
+
+        var blank = document.createElement(isSingle ? 'span' : 'button');
+        blank.className = 'blank-btn';
+        blank.textContent = '_____';
+        sentence.appendChild(blank);
+
+        var optArea = document.createElement('div');
+        optArea.className = isSingle ? 'options-area' : 'options-area hidden';
+
+        (function(b, oa, correct, opts) {
+          opts.forEach(function(opt) {
+            var btn = document.createElement('button');
+            btn.className = 'opt-btn';
+            btn.textContent = opt;
+            btn.addEventListener('click', function() {
+              if (b.classList.contains('answered')) return;
+              if (opt === correct) {
+                b.textContent = opt;
+                b.classList.add('answered');
+                oa.querySelectorAll('.opt-btn').forEach(function(x) { x.disabled = true; });
+                btn.classList.add('correct');
+                if (!isSingle) { oa.classList.add('hidden'); }
+              } else {
+                btn.classList.add('wrong');
+                setTimeout(function() { btn.classList.remove('wrong'); }, 500);
+              }
+            });
+            oa.appendChild(btn);
+          });
+
+          if (!isSingle) {
+            b.addEventListener('click', function() {
+              if (b.classList.contains('answered')) return;
+              task.querySelectorAll('.options-area').forEach(function(a) {
+                a.classList.add('hidden');
+              });
+              oa.classList.remove('hidden');
+            });
+          }
+        })(blank, optArea, correctAns, shuffled);
+
+        task.appendChild(optArea);
+      }
+    });
+
+    return task;
+  }
+
+  var container = document.getElementById('tasks');
+  ROWS.forEach(function(row, i) {
+    container.appendChild(buildTask(row, i));
+  });
+})();
+</script>
+</body>
+</html>
