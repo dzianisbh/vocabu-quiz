@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Irregular Verbs &mdash; Fill in the Blanks</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --radius: 0.75rem;
+  }
+  body {
+    font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+  /* Timer */
+  .timer-bar {
+    display: -webkit-flex; display: flex;
+    -webkit-align-items: center; align-items: center;
+    gap: 0.75rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 0.625rem 1.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem; font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    width: -webkit-fit-content; width: fit-content;
+    position: -webkit-sticky; position: sticky;
+    top: 0.75rem;
+    z-index: 100;
+    margin-left: auto; margin-right: auto;
+  }
+  .timer-icon { font-size: 1.3rem; }
+  #timer-display { min-width: 3.75rem; text-align: center; }
+  #timer-display.warning { color: var(--danger); -webkit-animation: pulse 1s infinite; animation: pulse 1s infinite; }
+  @-webkit-keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  /* Notification */
+  #notification {
+    position: fixed; top: 0.5rem; left: 50%;
+    -webkit-transform: translateX(-50%);
+    transform: translateX(-50%);
+    padding: 0.625rem 1.5rem; border-radius: 50px;
+    font-weight: 600; font-size: 1.1rem;
+    opacity: 0;
+    -webkit-transition: opacity .4s;
+    transition: opacity .4s;
+    pointer-events: none; z-index: 200;
+    box-shadow: 0 4px 16px rgba(0,0,0,.15);
+    white-space: nowrap;
+  }
+  #notification.show { opacity: 1; }
+  #notification.success { background: var(--success); color: #fff; }
+  #notification.error { background: var(--danger); color: #fff; }
+
+  /* Tasks */
+  .tasks { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; gap: 1rem; }
+  .task {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  }
+  .task-label {
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--muted); margin-bottom: 0.625rem;
+  }
+  .task-title {
+    font-size: 0.95rem; font-weight: 600; color: var(--text);
+    margin-bottom: 0.75rem;
+  }
+  .sentence {
+    display: -webkit-flex; display: flex;
+    -webkit-flex-wrap: wrap; flex-wrap: wrap;
+    -webkit-align-items: baseline; align-items: baseline;
+    gap: 0.2rem 0.35rem;
+    font-size: 1.05rem; line-height: 2.2;
+  }
+  .word { white-space: pre-wrap; }
+
+  /* Blank — solid underline style */
+  .blank-btn {
+    display: inline-block;
+    background: transparent;
+    border: none;
+    border-bottom: 2.5px solid var(--primary);
+    padding: 0 0.5rem 0.05rem;
+    min-width: 5rem;
+    text-align: center;
+    cursor: pointer;
+    font-size: 1rem;
+    font-family: inherit;
+    color: transparent; /* hide default text; filled via JS */
+    line-height: 1.6;
+    -webkit-transition: border-color .15s; transition: border-color .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .blank-btn.has-text { color: var(--primary); }
+  .blank-btn:hover:not(.answered):not(.select-answer) { border-bottom-color: var(--primary-dark); background: rgba(99,102,241,.05); border-radius: 4px 4px 0 0; }
+  .blank-btn.answered { border-bottom-color: var(--success); color: #15803d; cursor: default; }
+
+  /* Single-question "Select answer" style */
+  .blank-btn.select-answer {
+    border: 1.5px dashed var(--primary);
+    border-radius: 20px;
+    padding: 0.2rem 1rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+    cursor: default;
+    min-width: auto;
+  }
+  .blank-btn.select-answer.answered {
+    border-style: solid;
+    border-color: var(--success);
+    color: #15803d;
+  }
+
+  /* Options */
+  .options-area {
+    display: -webkit-flex; display: flex;
+    -webkit-flex-wrap: wrap; flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.875rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--border);
+  }
+  .options-area.hidden { display: none; }
+  .opt-btn {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 0.375rem 1rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-family: inherit;
+    -webkit-transition: border-color .15s, background .15s; transition: border-color .15s, background .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .opt-btn:hover:not(:disabled) { border-color: var(--primary); background: #eef2ff; }
+  .opt-btn.correct { border-color: var(--success); background: #f0fdf4; color: #15803d; }
+  .opt-btn.wrong { border-color: var(--danger); background: #fef2f2; -webkit-animation: shake .4s; animation: shake .4s; }
+  .opt-btn:disabled { opacity: 0.6; cursor: default; }
+  @-webkit-keyframes shake {
+    0%,100%{-webkit-transform:translateX(0);transform:translateX(0)}
+    25%{-webkit-transform:translateX(-5px);transform:translateX(-5px)}
+    75%{-webkit-transform:translateX(5px);transform:translateX(5px)}
+  }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    25%{transform:translateX(-5px)}
+    75%{transform:translateX(5px)}
+  }
+
+  /* Score screen */
+  #score-screen {
+    display: none; -webkit-flex-direction: column; flex-direction: column;
+    -webkit-align-items: center; align-items: center;
+    gap: 1.25rem;
+    background: var(--card); border-radius: var(--radius);
+    padding: 3rem 2.5rem; max-width: 26rem; width: 100%;
+    text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,.1);
+    margin: 0 auto;
+  }
+  .score-emoji { font-size: 4rem; }
+  .score-title { font-size: 1.8rem; font-weight: 700; }
+  .score-value { font-size: 3rem; font-weight: 800; color: var(--primary); }
+  .score-detail { color: var(--muted); font-size: 1rem; }
+  .btn-retry {
+    margin-top: 0.5rem;
+    background: var(--primary); color: #fff; border: none;
+    border-radius: 50px; padding: 0.875rem 2.25rem;
+    font-size: 1rem; font-weight: 600; cursor: pointer;
+    -webkit-transition: background .15s; transition: background .15s;
+    font-family: inherit;
+  }
+  .btn-retry:hover { background: var(--primary-dark); }
+
+  @media (max-width: 480px) {
+    body { padding: 1.25rem 0.75rem; }
+    h1 { font-size: 1.35rem; }
+    .sentence { font-size: 0.95rem; }
+    .blank-btn { min-width: 3.5rem; font-size: 0.9rem; }
+    .opt-btn { font-size: 0.875rem; padding: 0.3rem 0.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Irregular Verbs</h1>
+<p class="subtitle">First lesson. Explaining basics of irregular verbs usage.</p>
+
+<div class="timer-bar" id="timer-bar" style="display:none">
+  <span class="timer-icon">&#9201;</span>
+  <span id="timer-display">0:00</span>
+</div>
+
+<div id="tasks" class="tasks"></div>
+
+<div id="notification"></div>
+
+<div id="score-screen">
+  <div class="score-emoji" id="score-emoji">&#127881;</div>
+  <div class="score-title" id="score-title">Done!</div>
+  <div class="score-value" id="score-value"></div>
+  <div class="score-detail" id="score-detail"></div>
+  <button class="btn-retry" onclick="restart()">Try Again</button>
+</div>
+
+<script>
+(function() {
+  var ROWS = [{"id":"86359e1a-1904-47d9-8dea-a2a5dd05bc60","title":null,"items":[{"id":"4cc55277-6fa2-432c-90ed-1072ea7598c2","type":"text","content":"I ","options":null},{"id":"a17874b0-512d-4e74-9f05-83dd17ed15f4","type":"question","content":null,"options":["had","have","having","has"]},{"id":"29316667-235a-4806-b038-2ef6682de7a0","type":"text","content":" a book yesterday.","options":null}]},{"id":"2cf67688-4b75-463d-858d-a03425982162","title":null,"items":[{"id":"aec998fa-f00c-4bdf-96ec-e8b1c6d66f81","type":"text","content":"He ","options":null},{"id":"c468c649-9f5c-4464-a9a5-8b5ce4b9c780","type":"question","content":null,"options":["went","go","goes","going"]},{"id":"a125ba9b-344f-4f06-8d89-5481eb2dbb30","type":"text","content":" to work last Monday.","options":null}]},{"id":"48b64955-cf80-4238-b47b-e3b8e8cebf5d","title":null,"items":[{"id":"ab1418f5-1f87-4e1f-a696-7dd7bf84901b","type":"text","content":"She ","options":null},{"id":"dc98068b-99d7-4b23-833a-39863b0e4aa9","type":"question","content":null,"options":["ate","eat","eating","eats"]},{"id":"748fa29a-3cd3-4674-9c78-e0ddc4dc816e","type":"text","content":" her lunch an hour ago.","options":null}]},{"id":"86694ab5-9894-4761-8e9f-00647e614d5e","title":null,"items":[{"id":"e6f7d76f-afdf-437b-8a74-361ae0f9f5fd","type":"text","content":"We ","options":null},{"id":"df70a6e5-8a15-43ab-a4f1-ac908817cd49","type":"question","content":null,"options":["saw","see","seeing","sees"]},{"id":"bd1fa30c-2363-48c8-8671-e466440321d9","type":"text","content":" a bird in the park this morning.","options":null}]},{"id":"9f5cc9f1-f0f4-408f-a63a-b53d11ea0c36","title":null,"items":[{"id":"e3c73d8c-4151-4089-9b96-bf3ee0ff7741","type":"text","content":"My mom ","options":null},{"id":"831dd69a-1a23-47a1-86cf-1973a86807a2","type":"question","content":null,"options":["made","make","making","makes"]},{"id":"b57e255a-656e-44de-b15a-67168b976c26","type":"text","content":" a nice dinner last night.","options":null}]}];
+  var TIMER_SECONDS = 120;
+  var CORRECT_BONUS = 3;
+  var WRONG_PENALTY = 5;
+
+  var timerLeft = TIMER_SECONDS;
+  var timerInterval = null;
+  var totalQuestions = 0;
+  var answeredCount = 0;
+  var mistakesCount = 0;
+  var gameOver = false;
+
+  ROWS.forEach(function(row) {
+    row.items.forEach(function(item) { if (item.type === 'question') totalQuestions++; });
+  });
+
+  function shuffle(a) {
+    var b = a.slice();
+    for (var i = b.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = b[i]; b[i] = b[j]; b[j] = t;
+    }
+    return b;
+  }
+
+  function formatTime(s) {
+    var abs = s < 0 ? -s : s;
+    var m = Math.floor(abs / 60);
+    var sec = abs % 60;
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  function updateTimerDisplay() {
+    var el = document.getElementById('timer-display');
+    if (!el) return;
+    el.textContent = formatTime(timerLeft);
+    el.className = (timerLeft <= 10 && timerLeft > 0) ? 'warning' : '';
+  }
+
+  var notifTimeout = null;
+  function showNotification(msg, type) {
+    var el = document.getElementById('notification');
+    el.textContent = msg;
+    el.className = 'show ' + type;
+    clearTimeout(notifTimeout);
+    notifTimeout = setTimeout(function() { el.className = ''; }, 1000);
+  }
+
+  function startTimer() {
+    if (TIMER_SECONDS <= 0) return;
+    document.getElementById('timer-bar').style.display = '-webkit-flex';
+    document.getElementById('timer-bar').style.display = 'flex';
+    updateTimerDisplay();
+    timerInterval = setInterval(function() {
+      if (gameOver) return;
+      timerLeft--;
+      updateTimerDisplay();
+      if (timerLeft <= 0) { timerLeft = 0; updateTimerDisplay(); endGame(false); }
+    }, 1000);
+  }
+
+  function onCorrect() {
+    answeredCount++;
+    if (TIMER_SECONDS > 0) {
+      timerLeft = Math.min(timerLeft + CORRECT_BONUS, TIMER_SECONDS * 2);
+      updateTimerDisplay();
+      showNotification('+' + CORRECT_BONUS + 's  Correct! ✓', 'success');
+    } else {
+      showNotification('Correct! ✓', 'success');
+    }
+    if (answeredCount === totalQuestions) setTimeout(function() { endGame(true); }, 400);
+  }
+
+  function onWrong() {
+    mistakesCount++;
+    if (TIMER_SECONDS > 0) {
+      timerLeft = Math.max(0, timerLeft - WRONG_PENALTY);
+      updateTimerDisplay();
+      showNotification('-' + WRONG_PENALTY + 's  Wrong! ✗', 'error');
+      if (timerLeft <= 0) endGame(false);
+    } else {
+      showNotification('Wrong! ✗', 'error');
+    }
+  }
+
+  function endGame(completed) {
+    if (gameOver) return;
+    gameOver = true;
+    if (timerInterval) clearInterval(timerInterval);
+    document.getElementById('tasks').style.display = 'none';
+    if (TIMER_SECONDS > 0) document.getElementById('timer-bar').style.display = 'none';
+    var ss = document.getElementById('score-screen');
+    ss.style.display = '-webkit-flex';
+    ss.style.display = 'flex';
+    var accuracy = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
+    var emoji = !completed ? '⏰' : accuracy === 100 ? '🏆' : accuracy >= 75 ? '🎉' : accuracy >= 50 ? '👍' : '📚';
+    document.getElementById('score-emoji').textContent = emoji;
+    if (!completed) document.getElementById('score-title').textContent = "Time’s Up!";
+    document.getElementById('score-value').textContent = accuracy + '%';
+    document.getElementById('score-detail').textContent =
+      answeredCount + ' of ' + totalQuestions + ' correct · ' + mistakesCount + ' mistake' + (mistakesCount !== 1 ? 's' : '');
+  }
+
+  function buildTask(row, rowIdx) {
+    var task = document.createElement('div');
+    task.className = 'task';
+
+    var label = document.createElement('div');
+    label.className = 'task-label';
+    label.textContent = 'Task ' + (rowIdx + 1);
+    task.appendChild(label);
+
+    if (row.title) {
+      var titleEl = document.createElement('div');
+      titleEl.className = 'task-title';
+      titleEl.textContent = row.title;
+      task.appendChild(titleEl);
+    }
+
+    var sentence = document.createElement('div');
+    sentence.className = 'sentence';
+    task.appendChild(sentence);
+
+    var qCount = row.items.filter(function(i) { return i.type === 'question'; }).length;
+    var textCount = row.items.filter(function(i) { return i.type === 'text'; }).length;
+    var isSingle = qCount === 1;            // options always visible
+    var isOnlyQuestion = isSingle && textCount === 0; // "Select answer" label
+
+    row.items.forEach(function(item) {
+      if (item.type === 'text') {
+        var span = document.createElement('span');
+        span.className = 'word';
+        span.textContent = item.content;
+        sentence.appendChild(span);
+        return;
+      }
+
+      var correctAns = item.options[0];
+      var shuffled = shuffle(item.options);
+
+      var blank = document.createElement(isOnlyQuestion ? 'span' : 'button');
+      blank.className = 'blank-btn' + (isOnlyQuestion ? ' select-answer' : '');
+      if (isOnlyQuestion) {
+        blank.textContent = 'Select answer';
+      } else {
+        blank.innerHTML = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+      }
+      sentence.appendChild(blank);
+
+      var optArea = document.createElement('div');
+      optArea.className = isSingle ? 'options-area' : 'options-area hidden';
+
+      (function(b, oa, correct, opts) {
+        opts.forEach(function(opt) {
+          var btn = document.createElement('button');
+          btn.className = 'opt-btn';
+          btn.textContent = opt;
+          btn.addEventListener('click', function() {
+            if (b.classList.contains('answered') || gameOver) return;
+            if (opt === correct) {
+              b.textContent = opt;
+              b.classList.add('answered');
+              b.classList.remove('select-answer');
+              oa.querySelectorAll('.opt-btn').forEach(function(x) { x.disabled = true; });
+              btn.classList.add('correct');
+              if (!isSingle) oa.classList.add('hidden');
+              onCorrect();
+            } else {
+              btn.classList.add('wrong');
+              setTimeout(function() { btn.classList.remove('wrong'); }, 500);
+              onWrong();
+            }
+          });
+          oa.appendChild(btn);
+        });
+
+        if (!isSingle) {
+          b.addEventListener('click', function() {
+            if (b.classList.contains('answered') || gameOver) return;
+            task.querySelectorAll('.options-area:not(.always-on)').forEach(function(a) { a.classList.add('hidden'); });
+            oa.classList.remove('hidden');
+          });
+        }
+      })(blank, optArea, correctAns, shuffled);
+
+      task.appendChild(optArea);
+    });
+
+    return task;
+  }
+
+  function buildAll() {
+    var container = document.getElementById('tasks');
+    container.innerHTML = '';
+    ROWS.forEach(function(row, i) { container.appendChild(buildTask(row, i)); });
+  }
+
+  function restart() {
+    gameOver = false;
+    answeredCount = 0;
+    mistakesCount = 0;
+    timerLeft = TIMER_SECONDS;
+    if (timerInterval) clearInterval(timerInterval);
+    clearTimeout(notifTimeout);
+    document.getElementById('notification').className = '';
+    document.getElementById('score-screen').style.display = 'none';
+    document.getElementById('tasks').style.display = '-webkit-flex';
+    document.getElementById('tasks').style.display = 'flex';
+    buildAll();
+    startTimer();
+  }
+
+  window.restart = restart;
+
+  buildAll();
+  startTimer();
+})();
+</script>
+</body>
+</html>
