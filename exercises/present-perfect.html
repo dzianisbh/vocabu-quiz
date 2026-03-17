@@ -53,6 +53,7 @@
   #timer-display.warning { color: var(--danger); -webkit-animation: pulse 1s infinite; animation: pulse 1s infinite; }
   @-webkit-keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
   /* Notification */
   #notification {
     position: fixed; top: 0.5rem; left: 50%;
@@ -71,8 +72,7 @@
   #notification.success { background: var(--success); color: #fff; }
   #notification.error { background: var(--danger); color: #fff; }
 
-  /* Tasks */
-  .tasks { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; gap: 1rem; }
+  /* Task card */
   .task {
     background: var(--card);
     border: 1px solid var(--border);
@@ -97,7 +97,7 @@
   }
   .word { white-space: pre-wrap; }
 
-  /* Blank — solid underline style */
+  /* Blank */
   .blank-btn {
     display: inline-block;
     background: transparent;
@@ -109,7 +109,7 @@
     cursor: pointer;
     font-size: 1rem;
     font-family: inherit;
-    color: transparent; /* hide default text; filled via JS */
+    color: transparent;
     line-height: 1.6;
     -webkit-transition: border-color .15s; transition: border-color .15s;
     -webkit-tap-highlight-color: transparent;
@@ -117,8 +117,6 @@
   .blank-btn.has-text { color: var(--primary); }
   .blank-btn:hover:not(.answered):not(.select-answer) { border-bottom-color: var(--primary-dark); background: rgba(99,102,241,.05); border-radius: 4px 4px 0 0; }
   .blank-btn.answered { border-bottom-color: var(--success); color: #15803d; cursor: default; }
-
-  /* Single-question "Select answer" style */
   .blank-btn.select-answer {
     border: 1.5px dashed var(--primary);
     border-radius: 20px;
@@ -194,6 +192,72 @@
   }
   .btn-retry:hover { background: var(--primary-dark); }
 
+  /* Carousel-specific */
+  .carousel-header {
+    position: sticky;
+    top: 0.5rem;
+    z-index: 100;
+    background: var(--bg);
+    padding: 0.5rem 0 0.75rem;
+  }
+  .steps {
+    display: flex;
+    gap: 0.3rem;
+    margin-bottom: 0.625rem;
+  }
+  .step {
+    flex: 1;
+    height: 7px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: none;
+    background: var(--border);
+    transition: background 0.2s, transform 0.15s;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .step--active { background: var(--primary); transform: scaleY(1.5); }
+  .step--clean { background: var(--success); }
+  .step--mistake { background: #f97316; }
+  .step--partial { background: #94a3b8; }
+  .step:hover:not(.step--active) { opacity: 0.75; }
+  .carousel-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .carousel-meta strong { color: var(--text); }
+  .carousel-nav {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+  .nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    padding: 0.625rem 1.5rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .nav-btn:hover:not(:disabled) { border-color: var(--primary); background: #eef2ff; color: var(--primary); }
+  .nav-btn:disabled { opacity: 0.35; cursor: default; }
+  .nav-btn--next {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    margin-left: auto;
+  }
+  .nav-btn--next:hover:not(:disabled) { background: var(--primary-dark); border-color: var(--primary-dark); color: #fff; }
+
   @media (max-width: 480px) {
     body { padding: 1.25rem 0.75rem; }
     h1 { font-size: 1.35rem; }
@@ -213,7 +277,20 @@
   <span id="timer-display">0:00</span>
 </div>
 
-<div id="tasks" class="tasks"></div>
+<div id="carousel-wrap" style="display:block">
+  <div class="carousel-header">
+    <div class="steps" id="steps"></div>
+    <div class="carousel-meta">
+      <span id="task-counter">Task 1 of N</span>
+      <span id="tasks-left"><strong>N</strong> unanswered</span>
+    </div>
+  </div>
+  <div id="carousel-task"></div>
+  <div class="carousel-nav">
+    <button class="nav-btn" id="btn-prev">&#8592; Previous</button>
+    <button class="nav-btn nav-btn--next" id="btn-next">Next &#8594;</button>
+  </div>
+</div>
 
 <div id="notification"></div>
 
@@ -227,21 +304,25 @@
 
 <script>
 (function() {
-  var ROWS = [{"id":"a1ffa586-606c-4025-8832-0de1082fbc12","title":null,"items":[{"id":"e2bed71a-d476-4b08-97b7-e046e1e2ff54","type":"text","content":"She has ","options":null},{"id":"d5d78e71-16f1-4b6c-b314-bc98dc62d190","type":"question","content":null,"options":["finished","finishes","finish","finishing"]},{"id":"cb41acac-1fd2-4626-93cd-8f0bedffa221","type":"text","content":" her work for today.","options":null}]},{"id":"05d2adfe-a53f-4da5-a73f-de9d18bb0130","title":null,"items":[{"id":"2bf6b30e-e9e7-4cd3-8c13-aa538d87d13a","type":"text","content":"He has ","options":null},{"id":"733fbe11-9799-4681-8b58-187eae44fd74","type":"question","content":null,"options":["eaten","eats","eat","eating"]},{"id":"0a1134c3-855d-4f5a-8055-98b5ad930b40","type":"text","content":" his breakfast already.","options":null}]},{"id":"f88742f2-e94e-4f58-9ad0-d39290751518","title":null,"items":[{"id":"d905b9d6-1aef-42aa-80b8-07a344a16a0b","type":"text","content":"It has ","options":null},{"id":"cdda9cac-7235-4b41-a23c-877cd7b6cb56","type":"question","content":null,"options":["rained","rains","rain","raining"]},{"id":"9928bb19-ed68-48ea-8347-da964ed42c21","type":"text","content":" a lot this week in the city.","options":null}]},{"id":"176d0534-c0e2-490d-9053-0cf57b5b6dda","title":null,"items":[{"id":"b651e0c8-64eb-4677-94ab-6920a21b06d9","type":"text","content":"My friend has ","options":null},{"id":"c8c31f0d-d17f-410f-9f87-50c753c19dca","type":"question","content":null,"options":["visited","visits","visit","visiting"]},{"id":"5fb5ffec-b69c-4087-a78b-4ec085494e34","type":"text","content":" London many times.","options":null}]},{"id":"3ab93db5-8c16-4166-901a-13d201e04919","title":null,"items":[{"id":"6aa22f8d-5613-4eb3-a79e-3d0640625f9c","type":"text","content":"The cat has ","options":null},{"id":"f4ca03dd-8c70-457b-92b5-5ae16ecce4a5","type":"question","content":null,"options":["slept","sleeps","sleep","sleeping"]},{"id":"4f097c39-5e9b-4813-b252-6ac740f8d0a4","type":"text","content":" on the sofa all afternoon.","options":null}]}];
+  var ROWS = [{"id":"a1ffa586-606c-4025-8832-0de1082fbc12","items":[{"id":"e2bed71a-d476-4b08-97b7-e046e1e2ff54","type":"text","content":"She has ","options":null},{"id":"d5d78e71-16f1-4b6c-b314-bc98dc62d190","type":"question","content":null,"options":["finished","finishes","finish","finishing"]},{"id":"cb41acac-1fd2-4626-93cd-8f0bedffa221","type":"text","content":" her work for today.","options":null}]},{"id":"05d2adfe-a53f-4da5-a73f-de9d18bb0130","items":[{"id":"2bf6b30e-e9e7-4cd3-8c13-aa538d87d13a","type":"text","content":"He has ","options":null},{"id":"733fbe11-9799-4681-8b58-187eae44fd74","type":"question","content":null,"options":["eaten","eats","eat","eating"]},{"id":"0a1134c3-855d-4f5a-8055-98b5ad930b40","type":"text","content":" his breakfast already.","options":null}]},{"id":"f88742f2-e94e-4f58-9ad0-d39290751518","items":[{"id":"d905b9d6-1aef-42aa-80b8-07a344a16a0b","type":"text","content":"It has ","options":null},{"id":"cdda9cac-7235-4b41-a23c-877cd7b6cb56","type":"question","content":null,"options":["rained","rains","rain","raining"]},{"id":"9928bb19-ed68-48ea-8347-da964ed42c21","type":"text","content":" a lot this week in the city.","options":null}]},{"id":"176d0534-c0e2-490d-9053-0cf57b5b6dda","items":[{"id":"b651e0c8-64eb-4677-94ab-6920a21b06d9","type":"text","content":"My friend has ","options":null},{"id":"c8c31f0d-d17f-410f-9f87-50c753c19dca","type":"question","content":null,"options":["visited","visits","visit","visiting"]},{"id":"5fb5ffec-b69c-4087-a78b-4ec085494e34","type":"text","content":" London many times.","options":null}]},{"id":"3ab93db5-8c16-4166-901a-13d201e04919","items":[{"id":"6aa22f8d-5613-4eb3-a79e-3d0640625f9c","type":"text","content":"The cat has ","options":null},{"id":"f4ca03dd-8c70-457b-92b5-5ae16ecce4a5","type":"question","content":null,"options":["slept","sleeps","sleep","sleeping"]},{"id":"4f097c39-5e9b-4813-b252-6ac740f8d0a4","type":"text","content":" on the sofa all afternoon.","options":null}]}];
   var TIMER_SECONDS = 60;
   var CORRECT_BONUS = 3;
   var WRONG_PENALTY = 5;
 
+  var currentIdx = 0;
+  var totalRows = ROWS.length;
+  var rowTotal = ROWS.map(function(r) {
+    return r.items.filter(function(i) { return i.type === 'question'; }).length;
+  });
+  var rowAnswered = ROWS.map(function() { return 0; });
+  var rowMistakes = ROWS.map(function() { return 0; });
+  var rowState = ROWS.map(function() { return 'pending'; });
+  var totalQuestions = rowTotal.reduce(function(s, n) { return s + n; }, 0);
+  var globalAnswered = 0;
   var timerLeft = TIMER_SECONDS;
   var timerInterval = null;
-  var totalQuestions = 0;
-  var answeredCount = 0;
-  var mistakesCount = 0;
   var gameOver = false;
-
-  ROWS.forEach(function(row) {
-    row.items.forEach(function(item) { if (item.type === 'question') totalQuestions++; });
-  });
+  var taskEls = [];
 
   function shuffle(a) {
     var b = a.slice();
@@ -288,8 +369,61 @@
     }, 1000);
   }
 
-  function onCorrect() {
-    answeredCount++;
+  function updateSteps() {
+    var dots = document.querySelectorAll('.step');
+    for (var i = 0; i < dots.length; i++) {
+      var cls = 'step step--' + (i === currentIdx ? 'active' : rowState[i]);
+      dots[i].className = cls;
+    }
+  }
+
+  function updateProgress() {
+    var unanswered = 0;
+    for (var i = 0; i < totalRows; i++) { unanswered += rowTotal[i] - rowAnswered[i]; }
+    document.getElementById('task-counter').textContent = 'Task ' + (currentIdx + 1) + ' of ' + totalRows;
+    var leftEl = document.getElementById('tasks-left');
+    leftEl.innerHTML = unanswered > 0
+      ? '<strong>' + unanswered + '</strong> unanswered'
+      : 'All answered ✓';
+  }
+
+  function updateNav() {
+    var prevBtn = document.getElementById('btn-prev');
+    var nextBtn = document.getElementById('btn-next');
+    prevBtn.disabled = currentIdx === 0;
+    nextBtn.textContent = currentIdx === totalRows - 1 ? 'Finish ✓' : 'Next →';
+  }
+
+  function goTo(idx) {
+    if (idx < 0 || idx >= totalRows || gameOver) return;
+    if (rowState[currentIdx] === 'active') {
+      if (rowAnswered[currentIdx] >= rowTotal[currentIdx] && rowTotal[currentIdx] > 0) {
+        rowState[currentIdx] = rowMistakes[currentIdx] > 0 ? 'mistake' : 'clean';
+      } else if (rowAnswered[currentIdx] > 0) {
+        rowState[currentIdx] = 'partial';
+      } else {
+        rowState[currentIdx] = 'pending';
+      }
+    }
+    currentIdx = idx;
+    rowState[idx] = 'active';
+    var container = document.getElementById('carousel-task');
+    container.innerHTML = '';
+    container.appendChild(taskEls[idx]);
+    updateSteps();
+    updateProgress();
+    updateNav();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function goNext() {
+    if (currentIdx === totalRows - 1) { endGame(true); } else { goTo(currentIdx + 1); }
+  }
+  function goPrev() { goTo(currentIdx - 1); }
+
+  function onCorrect(rowIdx) {
+    rowAnswered[rowIdx]++;
+    globalAnswered++;
     if (TIMER_SECONDS > 0) {
       timerLeft = Math.min(timerLeft + CORRECT_BONUS, TIMER_SECONDS * 2);
       updateTimerDisplay();
@@ -297,11 +431,22 @@
     } else {
       showNotification('Correct! ✓', 'success');
     }
-    if (answeredCount === totalQuestions) setTimeout(function() { endGame(true); }, 400);
+    if (rowAnswered[rowIdx] === rowTotal[rowIdx]) {
+      rowState[rowIdx] = rowMistakes[rowIdx] > 0 ? 'mistake' : 'clean';
+      updateSteps();
+      if (!gameOver && rowIdx === currentIdx && currentIdx < totalRows - 1 && globalAnswered < totalQuestions) {
+        setTimeout(function() {
+          if (!gameOver && currentIdx === rowIdx) { goTo(currentIdx + 1); }
+        }, 700);
+      }
+    }
+    if (globalAnswered === totalQuestions) {
+      setTimeout(function() { endGame(true); }, 500);
+    }
   }
 
-  function onWrong() {
-    mistakesCount++;
+  function onWrong(rowIdx) {
+    rowMistakes[rowIdx]++;
     if (TIMER_SECONDS > 0) {
       timerLeft = Math.max(0, timerLeft - WRONG_PENALTY);
       updateTimerDisplay();
@@ -316,45 +461,41 @@
     if (gameOver) return;
     gameOver = true;
     if (timerInterval) clearInterval(timerInterval);
-    document.getElementById('tasks').style.display = 'none';
+    document.getElementById('carousel-wrap').style.display = 'none';
     if (TIMER_SECONDS > 0) document.getElementById('timer-bar').style.display = 'none';
     var ss = document.getElementById('score-screen');
     ss.style.display = '-webkit-flex';
     ss.style.display = 'flex';
-    var accuracy = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
+    var totalMistakes = rowMistakes.reduce(function(s, n) { return s + n; }, 0);
+    var accuracy = totalQuestions > 0 ? Math.round((globalAnswered / totalQuestions) * 100) : 0;
     var emoji = !completed ? '⏰' : accuracy === 100 ? '🏆' : accuracy >= 75 ? '🎉' : accuracy >= 50 ? '👍' : '📚';
     document.getElementById('score-emoji').textContent = emoji;
     if (!completed) document.getElementById('score-title').textContent = "Time’s Up!";
     document.getElementById('score-value').textContent = accuracy + '%';
     document.getElementById('score-detail').textContent =
-      answeredCount + ' of ' + totalQuestions + ' correct · ' + mistakesCount + ' mistake' + (mistakesCount !== 1 ? 's' : '');
+      globalAnswered + ' of ' + totalQuestions + ' correct · ' + totalMistakes + ' mistake' + (totalMistakes !== 1 ? 's' : '');
   }
 
   function buildTask(row, rowIdx) {
     var task = document.createElement('div');
     task.className = 'task';
-
     var label = document.createElement('div');
     label.className = 'task-label';
-    label.textContent = 'Task ' + (rowIdx + 1);
+    label.textContent = 'Task ' + (rowIdx + 1) + ' of ' + totalRows;
     task.appendChild(label);
-
     if (row.title) {
       var titleEl = document.createElement('div');
       titleEl.className = 'task-title';
       titleEl.textContent = row.title;
       task.appendChild(titleEl);
     }
-
     var sentence = document.createElement('div');
     sentence.className = 'sentence';
     task.appendChild(sentence);
-
     var qCount = row.items.filter(function(i) { return i.type === 'question'; }).length;
     var textCount = row.items.filter(function(i) { return i.type === 'text'; }).length;
-    var isSingle = qCount === 1;            // options always visible
-    var isOnlyQuestion = isSingle && textCount === 0; // "Select answer" label
-
+    var isSingle = qCount === 1;
+    var isOnlyQuestion = isSingle && textCount === 0;
     row.items.forEach(function(item) {
       if (item.type === 'text') {
         var span = document.createElement('span');
@@ -363,23 +504,16 @@
         sentence.appendChild(span);
         return;
       }
-
       var correctAns = item.options[0];
       var shuffled = shuffle(item.options);
-
       var blank = document.createElement(isOnlyQuestion ? 'span' : 'button');
       blank.className = 'blank-btn' + (isOnlyQuestion ? ' select-answer' : '');
-      if (isOnlyQuestion) {
-        blank.textContent = 'Select answer';
-      } else {
-        blank.innerHTML = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
-      }
+      if (isOnlyQuestion) { blank.textContent = 'Select answer'; }
+      else { blank.innerHTML = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'; }
       sentence.appendChild(blank);
-
       var optArea = document.createElement('div');
       optArea.className = isSingle ? 'options-area' : 'options-area hidden';
-
-      (function(b, oa, correct, opts) {
+      (function(b, oa, correct, opts, rIdx) {
         opts.forEach(function(opt) {
           var btn = document.createElement('button');
           btn.className = 'opt-btn';
@@ -393,16 +527,15 @@
               oa.querySelectorAll('.opt-btn').forEach(function(x) { x.disabled = true; });
               btn.classList.add('correct');
               if (!isSingle) oa.classList.add('hidden');
-              onCorrect();
+              onCorrect(rIdx);
             } else {
               btn.classList.add('wrong');
               setTimeout(function() { btn.classList.remove('wrong'); }, 500);
-              onWrong();
+              onWrong(rIdx);
             }
           });
           oa.appendChild(btn);
         });
-
         if (!isSingle) {
           b.addEventListener('click', function() {
             if (b.classList.contains('answered') || gameOver) return;
@@ -410,38 +543,56 @@
             oa.classList.remove('hidden');
           });
         }
-      })(blank, optArea, correctAns, shuffled);
-
+      })(blank, optArea, correctAns, shuffled, rowIdx);
       task.appendChild(optArea);
     });
-
     return task;
   }
 
+  function buildSteps() {
+    var stepsEl = document.getElementById('steps');
+    stepsEl.innerHTML = '';
+    ROWS.forEach(function(_, i) {
+      var dot = document.createElement('button');
+      dot.className = 'step step--pending';
+      dot.title = 'Task ' + (i + 1);
+      (function(idx) {
+        dot.addEventListener('click', function() { goTo(idx); });
+      })(i);
+      stepsEl.appendChild(dot);
+    });
+  }
+
   function buildAll() {
-    var container = document.getElementById('tasks');
-    container.innerHTML = '';
-    ROWS.forEach(function(row, i) { container.appendChild(buildTask(row, i)); });
+    taskEls = ROWS.map(function(row, i) { return buildTask(row, i); });
   }
 
   function restart() {
     gameOver = false;
-    answeredCount = 0;
-    mistakesCount = 0;
+    globalAnswered = 0;
+    currentIdx = 0;
+    rowAnswered = ROWS.map(function() { return 0; });
+    rowMistakes = ROWS.map(function() { return 0; });
+    rowState = ROWS.map(function() { return 'pending'; });
     timerLeft = TIMER_SECONDS;
     if (timerInterval) clearInterval(timerInterval);
     clearTimeout(notifTimeout);
     document.getElementById('notification').className = '';
     document.getElementById('score-screen').style.display = 'none';
-    document.getElementById('tasks').style.display = '-webkit-flex';
-    document.getElementById('tasks').style.display = 'flex';
+    document.getElementById('carousel-wrap').style.display = 'block';
     buildAll();
+    buildSteps();
+    goTo(0);
     startTimer();
   }
 
   window.restart = restart;
+  document.getElementById('btn-prev').addEventListener('click', goPrev);
+  document.getElementById('btn-next').addEventListener('click', goNext);
 
   buildAll();
+  buildSteps();
+  goTo(0);
   startTimer();
 })();
 </script>
