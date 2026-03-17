@@ -49,6 +49,11 @@
     font-size: 1.1rem;
     font-weight: 600;
     box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    width: -webkit-fit-content; width: fit-content;
+    position: -webkit-sticky; position: sticky;
+    top: 0.75rem;
+    z-index: 100;
+    margin-left: auto; margin-right: auto;
   }
   .timer-icon { font-size: 1.3rem; }
   #timer-display { min-width: 3.75rem; text-align: center; }
@@ -92,6 +97,11 @@
     cursor: pointer;
     font-size: 1rem;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
     -webkit-transition: border-color .15s, background .15s, -webkit-transform .15s, opacity .3s;
     transition: border-color .15s, background .15s, transform .15s, opacity .3s;
     -webkit-user-select: none;
@@ -136,14 +146,14 @@
   }
 
   #notification {
-    position: fixed; top: 1.25rem; left: 50%;
+    position: fixed; top: 0.5rem; left: 50%;
     -webkit-transform: translateX(-50%);
     transform: translateX(-50%);
-    padding: 0.75rem 1.5rem; border-radius: 50px;
-    font-weight: 600; font-size: .95rem;
+    padding: 0.625rem 1.5rem; border-radius: 50px;
+    font-weight: 600; font-size: 1.1rem;
     opacity: 0;
-    -webkit-transition: opacity .25s;
-    transition: opacity .25s;
+    -webkit-transition: opacity .4s;
+    transition: opacity .4s;
     pointer-events: none; z-index: 100;
     box-shadow: 0 4px 16px rgba(0,0,0,.15);
     white-space: nowrap;
@@ -182,6 +192,13 @@
     touch-action: manipulation;
   }
   .btn-retry:active { background: var(--primary-dark); }
+
+  .word-transcription {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: monospace;
+    pointer-events: none;
+  }
 
   @media (max-width: 480px) {
     .game-area { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
@@ -223,8 +240,11 @@
 
 <script>
 (function() {
-  var PAIRS = [{"en":"Apple","ru":"Яблоко"},{"en":"Bread","ru":"Хлеб"},{"en":"Water","ru":"Вода"},{"en":"Milk","ru":"Молоко"},{"en":"Cheese","ru":"Сыр"},{"en":"Meat","ru":"Мясо"},{"en":"Fish","ru":"Рыба"},{"en":"Vegetable","ru":"Овощ"},{"en":"Fruit","ru":"Фрукт"},{"en":"Sugar","ru":"Сахар"}];
+  var PAIRS = [{"en":"Apple","ru":"Яблоко","tr":""},{"en":"Bread","ru":"Хлеб","tr":""},{"en":"Water","ru":"Вода","tr":""},{"en":"Milk","ru":"Молоко","tr":""},{"en":"Cheese","ru":"Сыр","tr":""},{"en":"Meat","ru":"Мясо","tr":""},{"en":"Fish","ru":"Рыба","tr":""},{"en":"Vegetable","ru":"Овощ","tr":""},{"en":"Fruit","ru":"Фрукт","tr":""},{"en":"Sugar","ru":"Сахар","tr":""}];
+  var HAS_TRANSCRIPTION = PAIRS.some(function(p) { return p.tr; });
+  var AUTO_VOICE = false;
   var INITIAL_TIMER = 60;
+  var TIMER_ENABLED = INITIAL_TIMER > 0;
   var CORRECT_BONUS = 3;
   var WRONG_PENALTY = 5;
 
@@ -275,12 +295,29 @@
     }, 1000);
   }
 
+  function speakWord(text) {
+    if (!AUTO_VOICE || !window.speechSynthesis) return;
+    var utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'en-US';
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utt);
+  }
+
   function showNotification(msg, type) {
     var el = document.getElementById('notification');
     el.textContent = msg;
     el.className = 'show ' + type;
     clearTimeout(notifTimeout);
-    notifTimeout = setTimeout(function() { el.className = ''; }, 1800);
+    notifTimeout = setTimeout(function() { el.className = ''; }, 1000);
+  }
+
+  function equalizeCardHeights() {
+    if (!HAS_TRANSCRIPTION) return;
+    var enCards = document.querySelectorAll('#col-en .word-card');
+    var ruCards = document.querySelectorAll('#col-ru .word-card');
+    var maxH = 0;
+    enCards.forEach(function(c) { maxH = Math.max(maxH, c.offsetHeight); });
+    ruCards.forEach(function(c) { c.style.minHeight = maxH + 'px'; });
   }
 
   function buildBoard() {
@@ -301,14 +338,24 @@
       var card = createCard(PAIRS[idx].ru, idx, 'ru');
       colRu.appendChild(card);
     });
+
+    equalizeCardHeights();
   }
 
   function createCard(text, idx, side) {
     var card = document.createElement('div');
     card.className = 'word-card';
-    card.textContent = text;
     card.setAttribute('data-idx', idx);
     card.setAttribute('data-side', side);
+    var label = document.createElement('span');
+    label.textContent = text;
+    card.appendChild(label);
+    if (side === 'en' && PAIRS[idx].tr) {
+      var tr = document.createElement('span');
+      tr.className = 'word-transcription';
+      tr.textContent = PAIRS[idx].tr;
+      card.appendChild(tr);
+    }
     card.addEventListener('click', function() { selectCard(card); });
     card.addEventListener('touchend', function(e) {
       e.preventDefault();
@@ -357,9 +404,14 @@
       removeClass(selectedRu, 'selected');
       addClass(selectedEn, 'matched');
       addClass(selectedRu, 'matched');
-      timerLeft = Math.min(timerLeft + CORRECT_BONUS, INITIAL_TIMER * 2);
-      updateTimerDisplay();
-      showNotification('+' + CORRECT_BONUS + 's  Correct! ✓', 'success');
+      speakWord(PAIRS[enIdx].en);
+      if (TIMER_ENABLED) {
+        timerLeft = Math.min(timerLeft + CORRECT_BONUS, INITIAL_TIMER * 2);
+        updateTimerDisplay();
+        showNotification('+' + CORRECT_BONUS + 's  Correct! ✓', 'success');
+      } else {
+        showNotification('Correct! ✓', 'success');
+      }
       matchedCount++;
       selectedEn = null;
       selectedRu = null;
@@ -372,9 +424,13 @@
       var en = selectedEn, ru = selectedRu;
       addClass(en, 'shake');
       addClass(ru, 'shake');
-      timerLeft = Math.max(0, timerLeft - WRONG_PENALTY);
-      updateTimerDisplay();
-      showNotification('-' + WRONG_PENALTY + 's  Wrong match ✗', 'error');
+      if (TIMER_ENABLED) {
+        timerLeft = Math.max(0, timerLeft - WRONG_PENALTY);
+        updateTimerDisplay();
+        showNotification('-' + WRONG_PENALTY + 's  Wrong match ✗', 'error');
+      } else {
+        showNotification('Wrong match ✗', 'error');
+      }
 
       setTimeout(function() {
         removeClass(en, 'selected');
@@ -383,7 +439,7 @@
         removeClass(ru, 'shake');
         selectedEn = null;
         selectedRu = null;
-        if (timerLeft <= 0) endGame(false);
+        if (TIMER_ENABLED && timerLeft <= 0) endGame(false);
       }, 500);
     }
   }
@@ -402,7 +458,7 @@
       : 0;
 
     var emoji;
-    if (!won) {
+    if (!won && TIMER_ENABLED) {
       emoji = '⏰';
       document.getElementById('score-title').textContent = "Time's Up!";
     } else if (accuracy === 100) {
@@ -436,16 +492,20 @@
     gameArea.style.display = '-ms-grid';
     gameArea.style.display = 'grid';
 
-    updateTimerDisplay();
+    if (TIMER_ENABLED) {
+      updateTimerDisplay();
+      startTimer();
+    }
     buildBoard();
-    startTimer();
   }
 
   window.restartQuiz = restartQuiz;
 
   buildBoard();
-  updateTimerDisplay();
-  startTimer();
+  if (TIMER_ENABLED) {
+    updateTimerDisplay();
+    startTimer();
+  }
 })();
 </script>
 </body>
