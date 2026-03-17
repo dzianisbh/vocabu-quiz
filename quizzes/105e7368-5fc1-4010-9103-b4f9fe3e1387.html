@@ -100,6 +100,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 0.2rem;
     -webkit-transition: border-color .15s, background .15s, -webkit-transform .15s, opacity .3s;
     transition: border-color .15s, background .15s, transform .15s, opacity .3s;
@@ -237,6 +238,8 @@
 <script>
 (function() {
   var PAIRS = [{"en":"Car","ru":"Автомобиль","tr":"/ˈkɑːr/"},{"en":"Train","ru":"Поезд","tr":"/ˈtreɪn/"},{"en":"Bus","ru":"Автобус","tr":"/ˈbʌs/"},{"en":"Bicycle","ru":"Велосипед","tr":"/ˈbaɪsɪkl/"},{"en":"Plane","ru":"Самолет","tr":"/ˈpleɪn/"},{"en":"Ship","ru":"Корабль","tr":"/ˈʃɪp/"},{"en":"Metro","ru":"Метро","tr":"/ˈmɛtroʊ/"},{"en":"Taxi","ru":"Такси","tr":"/ˈtæksi/"},{"en":"Tram","ru":"Трамвай","tr":"/ˈtræm/"},{"en":"Motorcycle","ru":"Мотоцикл","tr":"/ˈmoʊtəsaɪkl/"},{"en":"Truck","ru":"Грузовик","tr":"/ˈtrʌk/"}];
+  var HAS_TRANSCRIPTION = PAIRS.some(function(p) { return p.tr; });
+  var AUTO_VOICE = true;
   var INITIAL_TIMER = 0;
   var TIMER_ENABLED = INITIAL_TIMER > 0;
   var CORRECT_BONUS = 3;
@@ -289,12 +292,29 @@
     }, 1000);
   }
 
+  function speakWord(text) {
+    if (!AUTO_VOICE || !window.speechSynthesis) return;
+    var utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'en-US';
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utt);
+  }
+
   function showNotification(msg, type) {
     var el = document.getElementById('notification');
     el.textContent = msg;
     el.className = 'show ' + type;
     clearTimeout(notifTimeout);
     notifTimeout = setTimeout(function() { el.className = ''; }, 1000);
+  }
+
+  function equalizeCardHeights() {
+    if (!HAS_TRANSCRIPTION) return;
+    var enCards = document.querySelectorAll('#col-en .word-card');
+    var ruCards = document.querySelectorAll('#col-ru .word-card');
+    var maxH = 0;
+    enCards.forEach(function(c) { maxH = Math.max(maxH, c.offsetHeight); });
+    ruCards.forEach(function(c) { c.style.minHeight = maxH + 'px'; });
   }
 
   function buildBoard() {
@@ -315,6 +335,8 @@
       var card = createCard(PAIRS[idx].ru, idx, 'ru');
       colRu.appendChild(card);
     });
+
+    equalizeCardHeights();
   }
 
   function createCard(text, idx, side) {
@@ -379,6 +401,7 @@
       removeClass(selectedRu, 'selected');
       addClass(selectedEn, 'matched');
       addClass(selectedRu, 'matched');
+      speakWord(PAIRS[enIdx].en);
       if (TIMER_ENABLED) {
         timerLeft = Math.min(timerLeft + CORRECT_BONUS, INITIAL_TIMER * 2);
         updateTimerDisplay();
