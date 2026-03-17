@@ -49,6 +49,11 @@
     font-size: 1.1rem;
     font-weight: 600;
     box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    width: -webkit-fit-content; width: fit-content;
+    position: -webkit-sticky; position: sticky;
+    top: 0.75rem;
+    z-index: 100;
+    margin-left: auto; margin-right: auto;
   }
   .timer-icon { font-size: 1.3rem; }
   #timer-display { min-width: 3.75rem; text-align: center; }
@@ -92,6 +97,10 @@
     cursor: pointer;
     font-size: 1rem;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
     -webkit-transition: border-color .15s, background .15s, -webkit-transform .15s, opacity .3s;
     transition: border-color .15s, background .15s, transform .15s, opacity .3s;
     -webkit-user-select: none;
@@ -136,14 +145,14 @@
   }
 
   #notification {
-    position: fixed; top: 1.25rem; left: 50%;
+    position: fixed; top: 0.5rem; left: 50%;
     -webkit-transform: translateX(-50%);
     transform: translateX(-50%);
-    padding: 0.75rem 1.5rem; border-radius: 50px;
-    font-weight: 600; font-size: .95rem;
+    padding: 0.625rem 1.5rem; border-radius: 50px;
+    font-weight: 600; font-size: 1.1rem;
     opacity: 0;
-    -webkit-transition: opacity .25s;
-    transition: opacity .25s;
+    -webkit-transition: opacity .4s;
+    transition: opacity .4s;
     pointer-events: none; z-index: 100;
     box-shadow: 0 4px 16px rgba(0,0,0,.15);
     white-space: nowrap;
@@ -183,6 +192,13 @@
   }
   .btn-retry:active { background: var(--primary-dark); }
 
+  .word-transcription {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: monospace;
+    pointer-events: none;
+  }
+
   @media (max-width: 480px) {
     .game-area { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
     .column-cards { gap: 1rem; }
@@ -220,7 +236,7 @@
 
 <script>
 (function() {
-  var PAIRS = [{"en":"Car","ru":"Автомобиль"},{"en":"Train","ru":"Поезд"},{"en":"Bus","ru":"Автобус"},{"en":"Bicycle","ru":"Велосипед"},{"en":"Plane","ru":"Самолет"},{"en":"Ship","ru":"Корабль"},{"en":"Metro","ru":"Метро"},{"en":"Taxi","ru":"Такси"},{"en":"Tram","ru":"Трамвай"},{"en":"Motorcycle","ru":"Мотоцикл"},{"en":"Truck","ru":"Грузовик"}];
+  var PAIRS = [{"en":"Car","ru":"Автомобиль","tr":"/ˈkɑːr/"},{"en":"Train","ru":"Поезд","tr":"/ˈtreɪn/"},{"en":"Bus","ru":"Автобус","tr":"/ˈbʌs/"},{"en":"Bicycle","ru":"Велосипед","tr":"/ˈbaɪsɪkl/"},{"en":"Plane","ru":"Самолет","tr":"/ˈpleɪn/"},{"en":"Ship","ru":"Корабль","tr":"/ˈʃɪp/"},{"en":"Metro","ru":"Метро","tr":"/ˈmɛtroʊ/"},{"en":"Taxi","ru":"Такси","tr":"/ˈtæksi/"},{"en":"Tram","ru":"Трамвай","tr":"/ˈtræm/"},{"en":"Motorcycle","ru":"Мотоцикл","tr":"/ˈmoʊtəsaɪkl/"},{"en":"Truck","ru":"Грузовик","tr":"/ˈtrʌk/"}];
   var INITIAL_TIMER = 0;
   var TIMER_ENABLED = INITIAL_TIMER > 0;
   var CORRECT_BONUS = 3;
@@ -278,7 +294,7 @@
     el.textContent = msg;
     el.className = 'show ' + type;
     clearTimeout(notifTimeout);
-    notifTimeout = setTimeout(function() { el.className = ''; }, 1800);
+    notifTimeout = setTimeout(function() { el.className = ''; }, 1000);
   }
 
   function buildBoard() {
@@ -304,9 +320,17 @@
   function createCard(text, idx, side) {
     var card = document.createElement('div');
     card.className = 'word-card';
-    card.textContent = text;
     card.setAttribute('data-idx', idx);
     card.setAttribute('data-side', side);
+    var label = document.createElement('span');
+    label.textContent = text;
+    card.appendChild(label);
+    if (side === 'en' && PAIRS[idx].tr) {
+      var tr = document.createElement('span');
+      tr.className = 'word-transcription';
+      tr.textContent = PAIRS[idx].tr;
+      card.appendChild(tr);
+    }
     card.addEventListener('click', function() { selectCard(card); });
     card.addEventListener('touchend', function(e) {
       e.preventDefault();
